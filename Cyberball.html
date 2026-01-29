@@ -1,74 +1,84 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Cyberball</title>
-  <script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/jspsych.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/css/jspsych.css" rel="stylesheet">
-  <style>
-    body { text-align: center; font-family: sans-serif; margin-top: 50px; }
-    #ball { width: 50px; height: 50px; background: orange; border-radius: 50%; margin: 20px auto; position: relative; }
-    .player { display: inline-block; width: 100px; height: 100px; border: 2px solid black; border-radius: 50%; margin: 0 50px; line-height: 100px; font-weight: bold; }
-    #players { margin-top: 50px; }
-  </style>
+<meta charset="UTF-8">
+<title>Cyberball Qualtrics</title>
+<script src="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/jspsych.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/jspsych@7.3.0/css/jspsych.css" rel="stylesheet">
+<style>
+body { text-align: center; font-family: sans-serif; margin-top: 50px; }
+.player { display: inline-block; width: 100px; height: 100px; border: 2px solid black; border-radius: 50%; margin: 0 50px; line-height: 100px; font-weight: bold; vertical-align: middle; }
+#ball { width: 50px; height: 50px; background: orange; border-radius: 50%; margin: 20px auto; }
+#game-container { position: relative; height: 200px; }
+</style>
 </head>
 <body>
 
 <h2>Cyberball</h2>
-<div id="players">
+<div id="game-container">
   <div class="player" id="player0">You</div>
   <div class="player" id="player1">A</div>
   <div class="player" id="player2">B</div>
+  <div id="ball"></div>
 </div>
-<div id="ball"></div>
+<p id="message"></p>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function(){
 
+// --------------- CONFIGURATION ----------------
 const totalThrows = 30;
-const condition = jsPsych.randomization.sampleWithoutReplacement(['inclusion','exclusion'],1)[0]; 
+const condition = jsPsych.randomization.sampleWithoutReplacement(['inclusion','exclusion'],1)[0];
 const participantID = 0;
 const players = [0,1,2];
 
 let throwCount = 0;
-let currentHolder = participantID; 
+let currentHolder = participantID;
 const ballDiv = document.getElementById('ball');
+const messageDiv = document.getElementById('message');
 
-function passBall() {
+// Envoi de la condition à Qualtrics via Embedded Data
+if(window.parent && window.parent.Qualtrics && window.parent.Qualtrics.SurveyEngine){
+    window.parent.Qualtrics.SurveyEngine.setEmbeddedData('CyberballCondition', condition);
+}
+
+// --------------- LOGIQUE DE PASSAGE ----------------
+function passBall(){
     throwCount++;
     let nextHolder;
-    if(condition === 'inclusion') {
-        nextHolder = players[Math.floor(Math.random() * 3)];
+    if(condition==='inclusion'){
+        nextHolder = players[Math.floor(Math.random()*3)];
     } else {
-        if(throwCount <= 2) nextHolder = participantID;
-        else nextHolder = players[1 + Math.floor(Math.random() * 2)]; 
+        if(throwCount <=2) nextHolder = participantID;
+        else nextHolder = players[1 + Math.floor(Math.random()*2)];
     }
     currentHolder = nextHolder;
     moveBall(nextHolder);
-    
-    if(throwCount < totalThrows) {
+
+    if(throwCount < totalThrows){
         setTimeout(passBall, 1000);
     } else {
         endGame();
     }
 }
 
-function moveBall(playerIndex) {
+// --------------- POSITION DU BALLON ----------------
+function moveBall(playerIndex){
     const playerDiv = document.getElementById('player'+playerIndex);
     const rect = playerDiv.getBoundingClientRect();
-    ballDiv.style.transition = "all 0.5s ease";
+    const containerRect = document.getElementById('game-container').getBoundingClientRect();
     ballDiv.style.position = "absolute";
-    ballDiv.style.left = (rect.left + rect.width/2 - 25) + "px";
-    ballDiv.style.top = (rect.top + rect.height/2 - 25) + "px";
+    ballDiv.style.left = (rect.left - containerRect.left + rect.width/2 - 25) + "px";
+    ballDiv.style.top = (rect.top - containerRect.top + rect.height/2 - 25) + "px";
 }
 
-function endGame() {
+// --------------- FIN DU JEU ----------------
+function endGame(){
     ballDiv.style.display = "none";
-    const msg = document.createElement('h3');
-    msg.innerText = "Le jeu est terminé. Merci de continuer le questionnaire.";
-    document.body.appendChild(msg);
+    messageDiv.innerText = "Le jeu est terminé. Merci de continuer le questionnaire.";
 }
 
+// --------------- DÉBUT ----------------
 passBall();
 
 });
@@ -76,5 +86,3 @@ passBall();
 
 </body>
 </html>
-
-
